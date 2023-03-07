@@ -3,9 +3,7 @@ package calculator
 class SmartCalculator {
 
     private lateinit var inputString: String
-    val regex = Regex(""" +""")
     private lateinit var inputList : List<String>
-
     private var variables = mapOf<String, Int>()
 
 init {
@@ -21,7 +19,7 @@ init {
         when {
 
             inputString.contains("=") -> {
-                variables += variableAdd(inputString)
+                variables += addVariable(inputString)
                 println(variables)
                 calculate()
             }
@@ -69,15 +67,18 @@ init {
         }
     }
 
-    private fun variableAdd(inputString: String): Map<String, Int> {
+    private fun addVariable(inputString: String): Map<String, Int> {
 
         val (key, value) = inputString.replace(" ", "").split('=')
 
+        // Name of a variable (identifier) can contain only Latin letters.
         if (!Regex("[a-zA-Z]*").matches(key)) {
             println("Invalid identifier")
             calculate()
         }
 
+        // The value can be an integer number
+        // TODO value can be a value of another variable
         if (!Regex("[0-9]*").matches(value)) {
             println("Invalid assignment")
             calculate()
