@@ -1,32 +1,49 @@
 package calculator
 
+
+
 fun main() {
 
     calculate()
 
 }
 
+
+
+var variablesMap = mapOf<Char, Int>()
+
+
+
 fun calculate() {
 
-    val input = Regex(""" +""").split(readln())
+    val inputString = readln()
+    val inputList = Regex(""" +""").split(inputString)
+
 
     when {
-        input.first() == "" -> {
+
+        inputString.contains("=") -> {
+            variablesMap += variableAdd(inputString)
+            println(variablesMap)
             calculate()
         }
 
-        input.first().toIntOrNull() != null  -> {
-            if (input.size == 1) {
-                println(input.first().toInt())
+        inputList.first() == "" -> {
+            calculate()
+        }
+
+        inputList.first().toIntOrNull() != null  -> {
+            if (inputList.size == 1) {
+                println(inputList.first().toInt())
                 calculate()
             } else {
-                var output = input.first().toInt()
-                for ((index, value) in input.withIndex()) {
-                    if (index != 0 && index != input.lastIndex) {
+                var output = inputList.first().toInt()
+                for ((index, value) in inputList.withIndex()) {
+                    if (index != 0 && index != inputList.lastIndex) {
                         if (value.contains("+") || (value.contains("-") && value.length % 2 == 0)) {
-                            output += input[index + 1].toInt()
+                            output += inputList[index + 1].toInt()
                         } else if (value.contains("-")) {
-                            output -= input[index + 1].toInt()
+                            output -= inputList[index + 1].toInt()
                         }
                     }
                 }
@@ -36,10 +53,10 @@ fun calculate() {
         }
 
         else -> {
-            if (input.first().contains("/")) {
-                if (input.contains("/exit")) {
+            if (inputList.first().contains("/")) {
+                if (inputList.contains("/exit")) {
                     println("Bye!")
-                } else if (input.contains("/help")) {
+                } else if (inputList.contains("/help")) {
                     println("The program calculates the sum of numbers")
                     calculate()
                 } else {
@@ -52,5 +69,21 @@ fun calculate() {
             }
         }
     }
+}
+
+fun variableAdd(inputString: String): Map<Char, Int> {
+    val (key, value) = inputString.filterNot { it == ' ' }.split("=")
+
+    if (!key.single().isLetter()) {
+        println("Invalid identifier")
+        calculate()
+    }
+
+    if (inputString.count { it == '='} > 1 || value.toIntOrNull() == null) {
+        println("Invalid assignment")
+        calculate()
+    }
+
+    return mapOf(key.single() to value.toInt())
 }
 
