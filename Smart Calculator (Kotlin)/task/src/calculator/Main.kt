@@ -7,7 +7,8 @@ fun main() {
 }
 
 fun calculate() {
-    val input = readln().split(" ")
+
+    val input = Regex(""" +""").split(readln())
 
     when {
         input.contains("/exit") -> {
@@ -28,20 +29,18 @@ fun calculate() {
             calculate()
         }
 
-
         else -> {
-            input.filter { it }
-            var temp = 0
-
-            for (i in input) {
-                if (i.toInt() in -9..9) {
-                    temp = i.toInt()
+            var output = input.first().toInt()
+            for ((index, value) in input.withIndex()) {
+                if (index != 0 && index != input.lastIndex) {
+                    if (value.contains("+") || (value.contains("-") && value.length % 2 == 0)) {
+                        output += input[index + 1].toInt()
+                    } else if (value.contains("-")) {
+                        output -= input[index + 1].toInt()
+                    }
                 }
             }
-
-
-
-            println(input.filter { it != " " }.sumOf { it.toInt() })
+            println(output)
             calculate()
         }
     }
