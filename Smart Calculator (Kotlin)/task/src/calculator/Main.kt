@@ -4,7 +4,7 @@ class SmartCalculator {
 
     private lateinit var inputString: String
     private lateinit var inputList : List<String>
-    private var variables = mapOf<String, Int>()
+    private var variables = mutableMapOf<String, Int>()
 
 init {
     calculate()
@@ -19,7 +19,7 @@ init {
         when {
 
             inputString.contains("=") -> {
-                variables += addVariable(inputString)
+                addVariable(inputString)
                 println(variables)
                 calculate()
             }
@@ -67,7 +67,7 @@ init {
         }
     }
 
-    private fun addVariable(inputString: String): Map<String, Int> {
+    private fun addVariable(inputString: String) {
 
         val (key, value) = inputString.replace(" ", "").split('=')
 
@@ -77,14 +77,14 @@ init {
             calculate()
         }
 
-        // The value can be an integer number
-        // TODO value can be a value of another variable
-        if (!Regex("[0-9]*").matches(value)) {
+        if (variables.containsKey(value))  { // The value can be a value of another variable
+            variables[key] = variables[value]!!.toInt()
+        } else if (!Regex("[0-9]*").matches(value)) { // The value can be an integer number
             println("Invalid assignment")
             calculate()
+        } else {
+            variables += mapOf(key to value.toInt())
         }
-
-        return mapOf(key to value.toInt())
     }
 }
 
