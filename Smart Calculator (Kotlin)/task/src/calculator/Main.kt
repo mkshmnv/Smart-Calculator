@@ -3,90 +3,92 @@ package calculator
 class SmartCalculator {
 
     private lateinit var inputString: String
-    private lateinit var inputList : List<String>
+    private lateinit var inputList: List<String>
+    private lateinit var firstElement : String
     private var variables = mutableMapOf<String, Int>()
 
-init {
-    calculate()
-}
 
-    fun calculate() {
+    // Regex's
+    private val letters = Regex("[a-zA-Z]*")
+    private val spaces = Regex(""" +""")
+    private val commands = Regex("""/.+""")
+    private val numbers = Regex("[0-9]*")
+    private val invalidSymbols = Regex("""(\d+\++|\d+-+|[a-zA-Z]+)+""") // TODO FIX THIS
 
-        inputString = readln()
-        inputList = Regex(""" +""").split(inputString)
+    init {
+        calculate()
+    }
 
+    private fun calculate() {
+
+        while (true) {
+            inputString = readln()
+            inputList = inputString.split(spaces).joinToString("").split("=")
+            firstElement = inputList.first()
+
+            when {
+                inputString.matches(commands) -> {
+                    when (inputString) {
+                        "/exit" -> {
+                            println("Bye!")
+                            break
+                        } // passed
+                        "/help" -> println("FAQ") // passed
+                        else -> println("Unknown command") // passed
+                    }
+                } // all passed
+
+                inputString.contains("=") -> {
+                    addVariable()
+                    println(variables)
+                }
+
+                inputList.size == 1 -> {
+                    when {
+                        inputString == "" -> continue
+                        !firstElement.matches(letters) -> println("Invalid identifier")
+                        !variables.containsKey(firstElement) -> println("Unknown variable")
+                        else -> println(variables[firstElement])
+                    }
+                } // all passed
+
+                // TODO FIX THIS
+//                inputString.contains(invalidSymbols) -> println("Invalid expression")
+
+                // calculate
+                else -> println(inputString
+                    .replace("+", "")
+                    .replace("--", "")
+                    .replace(Regex("-\\s+"), "-")
+                    .split(Regex("\\s+"))
+                    .sumOf { it.toInt() })
+            }
+        }
+    }
+
+    private fun addVariable() {
+        val (key, value) = inputString.replace(spaces, "").split('=')
+        val assignment = inputString.count { it == '=' } > 1 //|| !value.matches(numbers)
 
         when {
-
-            inputString.contains("=") -> {
-                addVariable(inputString)
-                println(variables)
-                calculate()
-            }
-
-            inputList.first() == "" -> {
-                calculate()
-            }
-
-            inputList.first().toIntOrNull() != null  -> {
-                if (inputList.size == 1) {
-                    println(inputList.first().toInt())
-                    calculate()
-                } else {
-                    var output = inputList.first().toInt()
-                    for ((index, value) in inputList.withIndex()) {
-                        if (index != 0 && index != inputList.lastIndex) {
-                            if (value.contains("+") || (value.contains("-") && value.length % 2 == 0)) {
-                                output += inputList[index + 1].toInt()
-                            } else if (value.contains("-")) {
-                                output -= inputList[index + 1].toInt()
-                            }
-                        }
-                    }
-                    println(output)
-                    calculate()
-                }
-            }
-
+            !firstElement.matches(letters) -> println("Invalid identifier")
+            assignment -> println("Invalid assignment")
             else -> {
-                if (inputList.first().contains("/")) {
-                    if (inputList.contains("/exit")) {
-                        println("Bye!")
-                    } else if (inputList.contains("/help")) {
-                        println("The program calculates the sum of numbers")
-                        calculate()
-                    } else {
-                        println("Unknown command")
-                        calculate()
-                    }
+                if (variables.containsKey(value)) { // The value can be a value of another variable
+                    variables[key] = variables[value]!!.toInt()
                 } else {
-                    println("Invalid expression")
-                    calculate()
+                    if (value.matches(letters)) {
+                        println("Unknown variable")
+                    } else {
+                        // TODO fix exceptions -> test n = a2a
+                        variables += mapOf(key to value.toInt())
+                    }
                 }
             }
-        }
-    }
-
-    private fun addVariable(inputString: String) {
-
-        val (key, value) = inputString.replace(" ", "").split('=')
-
-        // Name of a variable (identifier) can contain only Latin letters.
-        if (!Regex("[a-zA-Z]*").matches(key)) {
-            println("Invalid identifier")
-            calculate()
-        }
-
-        if (variables.containsKey(value))  { // The value can be a value of another variable
-            variables[key] = variables[value]!!.toInt()
-        } else if (!Regex("[0-9]*").matches(value)) { // The value can be an integer number
-            println("Invalid assignment")
-            calculate()
-        } else {
-            variables += mapOf(key to value.toInt())
         }
     }
 }
+
 
 fun main() {
 
