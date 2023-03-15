@@ -5,29 +5,27 @@ import java.util.*
 class SmartCalculator {
 
     private lateinit var inputString: String
-    private lateinit var inputList: List<String>
-    private lateinit var firstElement : String
-    private var variables = mutableMapOf<String, Int>()
+    private var operands = mutableMapOf<String, Int>()
 
     // Regex's
     private val letters = Regex("[a-zA-Z]*")
     private val spaces = Regex(""" +""")
     private val commands = Regex("""/.+""")
-    private val numbers = Regex("[0-9]*")
-    private val invalidSymbols = Regex("""(\d+\++|\d+-+|[a-zA-Z]+)+""") // TODO FIX THIS
+    private val operators = Regex("[+\\-*/]")
+    private val numbers = Regex("[+\\-0-9]+")
 
     init {
-        calculate11()
+        start()
     }
 
     // convert infix to postfix and calculate
-    private fun calculate(infix: String): Int? {
+    private fun calculate(infix: String) {
         var postfix = ""
 
         val outputQueue = mutableListOf<String>()
         val operatorStack = Stack<String>()
         val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2)
-        val symbols = Regex("[+\\-*/^()]")
+        val symbols = Regex("[+\\-*/()]")
 
         var result: Int? = null
         val stack: Deque<Int> = LinkedList()
@@ -63,11 +61,7 @@ class SmartCalculator {
             }
         }
 
-        // check parentheses
         while (!operatorStack.isEmpty()) {
-            if (operatorStack.peek() == "(" || operatorStack.peek() == ")") {
-                throw IllegalArgumentException("Invalid expression")
-            }
             outputQueue.add(operatorStack.pop())
         }
 
@@ -78,7 +72,6 @@ class SmartCalculator {
             var num: Int? = null
 
             for (c in postfix.toCharArray()) {
-
                 when {
                     c == ' ' -> {
                         if (num != null) {
@@ -106,17 +99,36 @@ class SmartCalculator {
             result = stack.pop()
         }
 
-        return result
+        println(result)
     }
 
-    private fun calculate11() {
+    // begin
+    private fun start() {
+        var parentheses: Boolean
+        val symbols = Regex("[+\\-*/()=]")
+        val inputList = mutableListOf<String>()
+        var firstElement : String
 
         while (true) {
             inputString = readln()
-            inputList = inputString.split(spaces).joinToString("").split("=")
-            firstElement = inputList.first()
+//            inputList = inputString.split(spaces).joinToString("").split("=")
+
+            // TODO fix Invalid expression ----->  3 *** 5 and -10
+            inputString.forEach { inputList += if (it.toString().matches(symbols)) " $it " else it.toString() }
+            firstElement = inputList.joinToString("").split(" ").first()
+
+            parentheses = inputString.count { it == '(' } != inputString.count { it == ')' }
 
             when {
+                // check parentheses
+                parentheses -> {
+                    println("Invalid expression")
+                    return
+                }
+
+                // empty input
+                inputString == "" -> continue
+
                 // application of commands
                 inputString.matches(commands) -> {
                     when (inputString) {
@@ -124,146 +136,92 @@ class SmartCalculator {
                             println("Bye!")
                             break
                         } // passed
-                        "/help" -> println("FAQ") // passed
+                        "/help" -> println("There should be a description of the calculator's functionality.") // passed
                         else -> println("Unknown command") // passed
                     }
                 } // all passed
 
-                // interaction database variables
+                // interaction database variables and set a new value
                 inputString.contains("=") -> {
                     addVariable()
-                    println(variables)
+                    println(operands)
                 } // all passed
 
                 inputList.size == 1 -> {
                     when {
                         inputString == "" -> continue
+                        firstElement.matches(numbers) -> println(firstElement)
                         !firstElement.matches(letters) -> println("Invalid identifier")
-                        !variables.containsKey(firstElement) -> println("Unknown variable")
-                        else -> println(variables[firstElement])
+                        // TODO fix Invalid identifier ----->  1 +++ 2 * 3 -- 4
+                        !operands.containsKey(firstElement) -> println("Unknown variable")
+                        else -> println(operands[firstElement])
                     }
                 } // all passed
 
-                // TODO FIX THIS
-//                inputString.contains(invalidSymbols) -> println("Invalid expression")
+                // calculation
+                inputString.contains(operators) -> {
+                    var outputString = ""
 
-                // calculate
-                else -> calculate(inputString)
-//                    println(inputString
+                    inputString.split("").forEach {
+                        if (operands.containsKey(it)) outputString += operands[it] else outputString += it
+                    } // passed
+
+                    calculate(outputString)
+
+                } // all passed
+
+//                output
 //                    .replace("+", "")
 //                    .replace("--", "")
 //                    .replace(Regex("-\\s+"), "-")
 //                    .split(Regex("\\s+"))
-//                    .sumOf { it.toInt() })
+//                    .sumOf { it.toInt() }
+
+                // calculate
+                else -> {
+                    if (operands.containsKey(inputString)) {
+                        // variable displayed
+                        println(operands[inputString])
+                    } else {
+                        // variable is valid but not declared yet
+                        println("Unknown variable")
+                    }
+                } // all passed
             }
         }
     }
 
     private fun addVariable() {
-        val (key, value) = inputString.replace(spaces, "").split('=')
-        val assignment = inputString.count { it == '=' } > 1 //|| !value.matches(numbers)
+        val (key, value) = inputString.replace(Regex(""" +"""), "").split('=')
+        val assignment =
+            inputString.count { it == '=' } != 1 || (!value.matches(letters) && !value.matches(Regex("[0-9]*")))
+        val identifier = !key.matches(letters)
+        val variableNotDeclared = value.matches(letters) && !operands.containsKey(value)
 
         when {
-            !firstElement.matches(letters) -> println("Invalid identifier")
-            assignment -> println("Invalid assignment")
-            else -> {
-                if (variables.containsKey(value)) { // The value can be a value of another variable
-                    variables[key] = variables[value]!!.toInt()
-                } else {
-                    if (value.matches(letters)) {
-                        println("Unknown variable")
-                    } else {
-                        // TODO fix exceptions -> test n = a2a
-                        variables += mapOf(key to value.toInt())
-                    }
-                }
-            }
+            // name of a variable (identifier) can contain only Latin letters.
+            identifier -> println("Invalid identifier") // passed
+
+            // value of a variable is invalid during variable declaration
+            assignment -> println("Invalid assignment") // passed
+
+            // The value can be a value of another variable
+            operands.containsKey(value) -> operands[key] = operands[value]!!.toInt() // passed
+
+            // variable is valid but not declared yet
+            variableNotDeclared -> println("Unknown variable") // passed
+
+            // variable is declared
+            else -> operands += mapOf(key to value.toInt()) // passed
         }
     }
 }
 
 
 fun main() {
-    lateinit var inputString: String
-    val variables = mutableMapOf<String, Int>()
 
-    while (true) {
-        inputString = readln()
+    SmartCalculator()
 
-        when {
-            // empty input
-            inputString == "" -> continue
-
-            // program commands
-            inputString.matches(Regex("""/.+""")) -> {
-                when (inputString) {
-                    "/exit" -> {
-                        println("Bye!")
-                        break
-                    } // passed
-                    "/help" -> println("There should be a description of the calculator's functionality.") // passed
-                    else -> println("Unknown command") // passed
-                }
-            } // all passed
-
-            // set a new value
-            inputString.contains('=') -> {
-                val letters = Regex("[a-zA-Z]*")
-
-                val (key, value) = inputString.replace(Regex(""" +"""), "").split('=')
-
-                val assignment =
-                    inputString.count { it == '=' } != 1 || (!value.matches(letters) && !value.matches(Regex("[0-9]*")))
-                val identifier = !key.matches(letters)
-                val variableNotDeclared = value.matches(letters) && !variables.containsKey(value)
-
-                when {
-                    // name of a variable (identifier) can contain only Latin letters.
-                    identifier -> println("Invalid identifier") // passed
-
-                    // value of a variable is invalid during variable declaration
-                    assignment -> println("Invalid assignment") // passed
-
-                    // The value can be a value of another variable
-                    variables.containsKey(value) -> variables[key] = variables[value]!!.toInt() // passed
-
-                    // variable is valid but not declared yet
-                    variableNotDeclared -> println("Unknown variable") // passed
-
-                    // variable is declared
-                    else -> variables += mapOf(key to value.toInt()) // passed
-                }
-            } // all passed
-
-            // calculation
-            inputString.contains(Regex("[+\\-*/]+")) -> {
-                var output = ""
-
-                inputString.split("").forEach {
-                    if (variables.containsKey(it)) output += variables[it] else output += it
-                } // passed
-
-                println(output
-                    .replace("+", "")
-                    .replace("--", "")
-                    .replace(Regex("-\\s+"), "-")
-                    .split(Regex("\\s+"))
-                    .sumOf { it.toInt() }
-                ) // passed
-            } // all passed
-
-            // variable displayed
-            else -> {
-                if (variables.containsKey(inputString)) {
-                    // variable displayed
-                    println(variables[inputString])
-                } else {
-                    // variable is valid but not declared yet
-                    println("Unknown variable")
-                }
-            } // all passed
-        }
-    }
 }
 
 
