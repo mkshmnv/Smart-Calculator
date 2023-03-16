@@ -4,38 +4,123 @@ import java.util.*
 
 class SmartCalculator {
 
-    private lateinit var inputString: String
-    private var operands = mutableMapOf<String, Int>()
+    private var inputString: String
+    private var operandsMap = mutableMapOf<String, Int>()
 
-    // Regex's
     private val letters = Regex("[a-zA-Z]*")
-    private val spaces = Regex(""" +""")
-    private val commands = Regex("""/.+""")
-    private val operators = Regex("[+\\-*/]")
-    private val numbers = Regex("[+\\-0-9]+")
 
     init {
-        start()
+
+        var firstElement = ""
+
+        while (true) {
+            val inputList = mutableListOf<String>()
+            inputString = readln()
+                .replace("---", "-")
+                .replace("--", "+")
+                .replace(Regex("""\++"""), "+")
+
+            inputString
+                .forEach {
+                    inputList += if (it.toString().matches(Regex("[+\\-*/()=]"))) {
+                        " $it "
+                    } else {
+                        it.toString()
+                    }
+                }
+
+            // TODO this is crutch for test -10, how can fix this?
+            if (inputList.isNotEmpty()) {
+                firstElement = if (inputList.first() == " - ") {
+                    inputList += inputString
+                    inputList.first()
+                } else {
+                    inputList.first()
+                }
+            }
+
+            // checks input string
+            val isEmptyInputString = inputString == ""
+            val isCommand = inputString.matches(Regex("""/.+"""))
+            val isOnlyOneElement = inputList.size == 1
+            val isAssignment = inputString.contains("=")
+            val isHaveOperators = inputString.contains(Regex("[+\\-*/]"))
+
+            when {
+                // empty input
+                isEmptyInputString -> continue
+
+                // application of commands
+                isCommand -> {
+                    when (inputString) {
+                        "/exit" -> {
+                            println("Bye!")
+                            break
+                        }
+                        "/help" -> println("Modify the result of the /help command to explain all possible operators. You can write the output for the command in free form.") // passed
+                        else -> println("Unknown command") // passed
+                    }
+                } // all passed
+
+                // getting existing variables or error
+                isOnlyOneElement -> {
+                    when {
+                        firstElement.matches(Regex("[+\\-0-9]+")) -> println(firstElement)
+                        !firstElement.matches(letters) -> println("Invalid identifier")
+//                        !operands.containsKey(firstElement) -> println("Unknown variable")
+                        firstElement !in operandsMap.keys -> println("Unknown variable")
+                        else -> println(operandsMap[firstElement])
+                    }
+                } // all passed
+
+                // interaction database variables and set a new value
+                isAssignment -> assignmentVariable() // all passed
+
+                // calculation
+                isHaveOperators -> {
+                    var correctString = ""
+                    val isEvenParentheses = inputString.count { it == '(' } != inputString.count { it == ')' }
+                    val isIncorrectOperators =
+                        inputString.contains(Regex("""[*]{2}""")) || inputString.contains(Regex("""/{2}"""))
+
+                    // check parentheses and operators
+                    if (isEvenParentheses || isIncorrectOperators) {
+                        println("Invalid expression")
+                        continue
+                    }
+
+                    inputString
+                        .split("")
+                        .forEach {
+                            if (operandsMap.containsKey(it)) correctString += operandsMap[it] else correctString += it
+                        } // passed
+
+                    calculate(correctString)
+                } // all passed
+
+                else -> {
+                    // variable displayed or variable is valid but not declared yet
+                    println(if (inputString in operandsMap.keys) operandsMap[inputString] else "Unknown variable")
+                } // all passed
+            }
+        }
     }
 
     // convert infix to postfix and calculate
     private fun calculate(infix: String) {
         var postfix = ""
-
         val outputQueue = mutableListOf<String>()
         val operatorStack = Stack<String>()
         val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2)
-        val symbols = Regex("[+\\-*/()]")
-
         var result: Int? = null
         val stack: Deque<Int> = LinkedList()
 
         // convert string infix to infix
         // add spaces to infix string
-        infix.forEach { if (it.toString().matches(symbols)) postfix += " $it " else postfix += it }
+        infix.forEach { if (it.toString().matches(Regex("[+\\-*/()]"))) postfix += " $it " else postfix += it }
 
         // remove excessive spaces
-        postfix = postfix.split(spaces).joinToString(" ")
+        postfix = postfix.split(Regex(""" +""")).joinToString(" ")
 
         if (postfix.last() == ' ') postfix = postfix.dropLast(1)
 
@@ -102,101 +187,14 @@ class SmartCalculator {
         println(result)
     }
 
-    // begin
-    private fun start() {
-        var parentheses: Boolean
-        val symbols = Regex("[+\\-*/()=]")
-        val inputList = mutableListOf<String>()
-        var firstElement : String
-
-        while (true) {
-            inputString = readln()
-//            inputList = inputString.split(spaces).joinToString("").split("=")
-
-            // TODO fix Invalid expression ----->  3 *** 5 and -10
-            inputString.forEach { inputList += if (it.toString().matches(symbols)) " $it " else it.toString() }
-            firstElement = inputList.joinToString("").split(" ").first()
-
-            parentheses = inputString.count { it == '(' } != inputString.count { it == ')' }
-
-            when {
-                // check parentheses
-                parentheses -> {
-                    println("Invalid expression")
-                    return
-                }
-
-                // empty input
-                inputString == "" -> continue
-
-                // application of commands
-                inputString.matches(commands) -> {
-                    when (inputString) {
-                        "/exit" -> {
-                            println("Bye!")
-                            break
-                        } // passed
-                        "/help" -> println("There should be a description of the calculator's functionality.") // passed
-                        else -> println("Unknown command") // passed
-                    }
-                } // all passed
-
-                // interaction database variables and set a new value
-                inputString.contains("=") -> {
-                    addVariable()
-                    println(operands)
-                } // all passed
-
-                inputList.size == 1 -> {
-                    when {
-                        inputString == "" -> continue
-                        firstElement.matches(numbers) -> println(firstElement)
-                        !firstElement.matches(letters) -> println("Invalid identifier")
-                        // TODO fix Invalid identifier ----->  1 +++ 2 * 3 -- 4
-                        !operands.containsKey(firstElement) -> println("Unknown variable")
-                        else -> println(operands[firstElement])
-                    }
-                } // all passed
-
-                // calculation
-                inputString.contains(operators) -> {
-                    var outputString = ""
-
-                    inputString.split("").forEach {
-                        if (operands.containsKey(it)) outputString += operands[it] else outputString += it
-                    } // passed
-
-                    calculate(outputString)
-
-                } // all passed
-
-//                output
-//                    .replace("+", "")
-//                    .replace("--", "")
-//                    .replace(Regex("-\\s+"), "-")
-//                    .split(Regex("\\s+"))
-//                    .sumOf { it.toInt() }
-
-                // calculate
-                else -> {
-                    if (operands.containsKey(inputString)) {
-                        // variable displayed
-                        println(operands[inputString])
-                    } else {
-                        // variable is valid but not declared yet
-                        println("Unknown variable")
-                    }
-                } // all passed
-            }
-        }
-    }
-
-    private fun addVariable() {
-        val (key, value) = inputString.replace(Regex(""" +"""), "").split('=')
-        val assignment =
-            inputString.count { it == '=' } != 1 || (!value.matches(letters) && !value.matches(Regex("[0-9]*")))
+    private fun assignmentVariable() {
+        val (key, value) = inputString
+            .replace(Regex(""" +"""), "")
+            .split('=')
         val identifier = !key.matches(letters)
-        val variableNotDeclared = value.matches(letters) && !operands.containsKey(value)
+        val assignment = inputString.count { it == '=' } != 1 ||
+                (!value.matches(letters) && !value.matches(Regex("\\d*")))
+        val variableNotDeclared = value.matches(letters) && !operandsMap.containsKey(value)
 
         when {
             // name of a variable (identifier) can contain only Latin letters.
@@ -206,22 +204,20 @@ class SmartCalculator {
             assignment -> println("Invalid assignment") // passed
 
             // The value can be a value of another variable
-            operands.containsKey(value) -> operands[key] = operands[value]!!.toInt() // passed
+            operandsMap.containsKey(value) -> operandsMap[key] = operandsMap[value]!!.toInt() // passed
 
             // variable is valid but not declared yet
             variableNotDeclared -> println("Unknown variable") // passed
 
             // variable is declared
-            else -> operands += mapOf(key to value.toInt()) // passed
+            else -> operandsMap += mapOf(key to value.toInt()) // passed
         }
     }
 }
 
 
 fun main() {
-
     SmartCalculator()
-
 }
 
 
