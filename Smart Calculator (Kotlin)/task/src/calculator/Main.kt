@@ -1,5 +1,6 @@
 package calculator
 
+import java.math.BigInteger
 import java.util.*
 
 class SmartCalculator {
@@ -7,7 +8,7 @@ class SmartCalculator {
     private var inputString: String
     private var operandsMap = mutableMapOf<String, Int>()
 
-    private val letters = Regex("[a-zA-Z]*")
+    private val letters = Regex("[-a-zA-Z]*")
 
     init {
 
@@ -15,7 +16,7 @@ class SmartCalculator {
 
         while (true) {
             val inputList = mutableListOf<String>()
-            inputString = readln()
+            inputString = "a = 1" //readln()
                 .replace("---", "-")
                 .replace("--", "+")
                 .replace(Regex("""\++"""), "+")
@@ -65,9 +66,8 @@ class SmartCalculator {
                 // getting existing variables or error
                 isOnlyOneElement -> {
                     when {
-                        firstElement.matches(Regex("[+\\-0-9]+")) -> println(firstElement)
+                        firstElement.matches(Regex("[+\\-\\d]+")) -> println(firstElement)
                         !firstElement.matches(letters) -> println("Invalid identifier")
-//                        !operands.containsKey(firstElement) -> println("Unknown variable")
                         firstElement !in operandsMap.keys -> println("Unknown variable")
                         else -> println(operandsMap[firstElement])
                     }
@@ -112,8 +112,8 @@ class SmartCalculator {
         val outputQueue = mutableListOf<String>()
         val operatorStack = Stack<String>()
         val precedence = mapOf("+" to 1, "-" to 1, "*" to 2, "/" to 2)
-        var result: Int? = null
-        val stack: Deque<Int> = LinkedList()
+        var result: BigInteger? = null
+        val stack: Deque<BigInteger> = LinkedList()
 
         // convert string infix to infix
         // add spaces to infix string
@@ -154,7 +154,7 @@ class SmartCalculator {
 
         // calculate postfix expression
         if (postfix.isNotEmpty()) {
-            var num: Int? = null
+            var num: BigInteger? = null
 
             for (c in postfix.toCharArray()) {
                 when {
@@ -165,12 +165,12 @@ class SmartCalculator {
                         }
                     }
                     c - '0' in 0..9 -> {
-                        val digit = c - '0'
-                        num = if (num == null) digit else num * 10 + digit
+                        val digit = (c - '0').toBigInteger()
+                        num = if (num == null) digit else num * 10.toBigInteger() + digit
                     }
                     else -> {
-                        val num2: Int = stack.pop()
-                        val num1: Int = stack.pop()
+                        val num2: BigInteger = stack.pop()
+                        val num1: BigInteger = stack.pop()
 
                         when (c) {
                             '+' -> stack.push(num1 + num2)
@@ -193,7 +193,7 @@ class SmartCalculator {
             .split('=')
         val identifier = !key.matches(letters)
         val assignment = inputString.count { it == '=' } != 1 ||
-                (!value.matches(letters) && !value.matches(Regex("\\d*")))
+                (value.matches(letters) && value.matches(Regex("-\\d*")))
         val variableNotDeclared = value.matches(letters) && !operandsMap.containsKey(value)
 
         when {
